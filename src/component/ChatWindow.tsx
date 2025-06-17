@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CommandButtons from "./CommandButtons";
+import { sdk } from "@farcaster/frame-sdk";
+import { useConnect, useAccount } from "wagmi";
 
 interface Message {
   text: string;
@@ -14,7 +16,46 @@ function ChatWindow() {
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [userFid, setUserFid] = useState<string | null>(null);
+  const [userFid, setUserFid] = useState<number | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { connect, connectors } = useConnect();
+  const { isConnected: isAccountConnected } = useAccount();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const context = await sdk.context;
+        const fid = context.user.fid;
+        setUserFid(fid);
+        setUsername(context.user.username || "player");
+        sessionStorage.setItem("fid", fid.toString());
+      } catch {
+        setUsername("player");
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const autoConnectInMiniApp = async () => {
+      try {
+        const inMiniApp = await sdk.isInMiniApp();
+        if (inMiniApp && !isAccountConnected) {
+          const farcasterConnector = connectors.find(
+            (c) => c.id === "farcasterFrame"
+          );
+          if (farcasterConnector) {
+            connect({ connector: farcasterConnector });
+          }
+        }
+      } catch (error) {
+        console.error("Error during auto-connect:", error);
+      }
+    };
+    autoConnectInMiniApp();
+  }, [isAccountConnected, connect, connectors]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,7 +64,7 @@ function ChatWindow() {
   useEffect(() => {
     const fid = sessionStorage.getItem("fid");
     if (fid) {
-      setUserFid(fid);
+      setUserFid(parseInt(fid));
     }
   }, []);
 
@@ -36,15 +77,25 @@ function ChatWindow() {
       ]);
       return;
     }
+
     setMessages([...messages, { text: command, isUser: true }]);
+    setIsLoading(true);
     try {
-     const { data } = await axios.post("forgeback-production.up.railway.app/api/chat/command", { command, fid } );
+      const { data } = await axios.post(
+        "https://forgeback-production.up.railway.app/api/chat/command",
+        { command, fid }
+      );
       setMessages((prev) => [
         ...prev,
         { text: data.response, buttons: data.buttons },
       ]);
     } catch (error) {
-      setMessages((prev) => [...prev, { text: "Error processing command." }]);
+      setMessages((prev) => [
+        ...prev,
+        { text: "Error processing command." },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,14 +120,15 @@ function ChatWindow() {
             className={`p-2 m-1 rounded ${msg.isUser ? "bg-blue-100 ml-8" : "bg-gray-200 mr-8"}`}
           >
             <pre className="whitespace-pre-wrap">{msg.text}</pre>
-            
+
             {i === 0 && userFid && (
               <p className="text-xs text-gray-500 mt-1">Your Farcaster ID: {userFid}</p>
             )}
-            {i === 0 && userFid && (
-              <p className="text-xs text-gray-500 mt-1">Your connected wallet address: {userFid}</p>
-              
+
+            {i === 0 && username && (
+              <p className="text-xs text-gray-500">Logged in as: {username}</p>
             )}
+
             {msg.buttons && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {msg.buttons.map((row, rowIdx) => (
@@ -86,6 +138,7 @@ function ChatWindow() {
                         key={btnIdx}
                         className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
                         onClick={() => handleButtonClick(btn.callback)}
+                        disabled={isLoading}
                       >
                         {btn.label}
                       </button>
@@ -106,9 +159,14 @@ function ChatWindow() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Enter command..."
           className="flex-1 p-2 rounded-l border border-gray-300"
+          disabled={isLoading}
         />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded-r">
-          Send
+        <button
+          type="submit"
+          className="bg-blue-500 text-white p-2 rounded-r"
+          disabled={isLoading}
+        >
+          {isLoading ? "Sending..." : "Send"}
         </button>
       </form>
     </div>
