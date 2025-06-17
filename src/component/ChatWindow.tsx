@@ -69,9 +69,10 @@ function ChatWindow() {
             className={`p-2 m-1 rounded ${msg.isUser ? "bg-blue-100 ml-8" : "bg-gray-200 mr-8"}`}
           >
             <pre className="whitespace-pre-wrap">{msg.text}</pre>
+            <pre className="whitespace-pre-wrap">
             {i === 0 && userFid && (
               <p className="text-xs text-gray-500 mt-1">Your Farcaster ID: {userFid}</p>
-            )}
+            )}</pre>
             {msg.buttons && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {msg.buttons.map((row, rowIdx) => (
