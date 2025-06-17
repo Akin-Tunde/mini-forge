@@ -30,7 +30,7 @@ function ChatWindow() {
     }
     setMessages([...messages, { text: command, isUser: true }]);
     try {
-      const { data } = await axios.post("/api/chat/command", { command, fid });
+     const { data } = await axios.post("forgeback-production.up.railway.app/api/chat/command", { command, fid } );
       setMessages((prev) => [
         ...prev,
         { text: data.response, buttons: data.buttons },
@@ -53,7 +53,7 @@ function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-[695px] w-[424px] bg-gray-100 p-4 font-sans text-sm">
+    <div className="text-black flex flex-col h-[695px] w-[424px] bg-gray-100 p-4 font-sans text-sm">
       <div className="flex-1 overflow-y-auto mb-4 bg-white rounded-lg p-2 shadow">
         {messages.map((msg, i) => (
           <div
