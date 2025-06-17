@@ -69,7 +69,7 @@ function ChatWindow() {
             className={`p-2 m-1 rounded ${msg.isUser ? "bg-blue-100 ml-8" : "bg-gray-200 mr-8"}`}
           >
             <pre className="whitespace-pre-wrap">{msg.text}</pre>
-            <pre className="whitespace-pre-wrap">{msg.text}</pre>
+            
             {i === 0 && userFid && (
               <p className="text-xs text-gray-500 mt-1">Your Farcaster ID: {userFid}</p>
             )}
