@@ -19,37 +19,26 @@ function ChatWindow() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
- const sendCommand = async (command: string) => {
-  const fid = sessionStorage.getItem("fid");
-
-  if (!fid) {
-    setMessages(prev => [
-      ...prev,
-      { text: "Please authenticate via Farcaster." },
-    ]);
-    return;
-  }
-
-  setMessages(prev => [...prev, { text: command, isUser: true }]);
-
-  try {
-    const { data } = await axios.post(
-      "https://forgeback-production.up.railway.app/api/chat/command",
-      { command, fid }
-    );
-    
-    setMessages(prev => [
-      ...prev,
-      { text: data.response, buttons: data.buttons },
-    ]);
-  } catch (error) {
-    const message = axios.isAxiosError(error) && error.response?.data?.message
-      ? error.response.data.message
-      : "Error processing command.";
-    setMessages(prev => [...prev, { text: message }]);
-  }
-};
-
+  const sendCommand = async (command: string) => {
+    const fid = sessionStorage.getItem("fid");
+    if (!fid) {
+      setMessages([
+        ...messages,
+        { text: "Please authenticate via Farcaster." },
+      ]);
+      return;
+    }
+    setMessages([...messages, { text: command, isUser: true }]);
+    try {
+     const { data } = await axios.post("forgeback-production.up.railway.app/api/chat/command", { command, fid } );
+      setMessages((prev) => [
+        ...prev,
+        { text: data.response, buttons: data.buttons },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [...prev, { text: "Error processing command." }]);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
