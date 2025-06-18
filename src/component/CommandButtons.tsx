@@ -1,8 +1,10 @@
+// src/components/CommandButtons.tsx
 interface CommandButtonsProps {
-  onCommand: (command: string) => void;
+  onCommand: (command: string) => Promise<void>;
+  isLoading: boolean;
 }
 
-function CommandButtons({ onCommand }: CommandButtonsProps) {
+function CommandButtons({ onCommand, isLoading }: CommandButtonsProps) {
   const commands = [
     { label: "Start", command: "/start" },
     { label: "Balance", command: "/balance" },
@@ -22,6 +24,7 @@ function CommandButtons({ onCommand }: CommandButtonsProps) {
           key={command}
           className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
           onClick={() => onCommand(command)}
+          disabled={isLoading}
         >
           {label}
         </button>
