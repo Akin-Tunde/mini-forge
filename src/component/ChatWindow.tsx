@@ -29,10 +29,13 @@ function ChatWindow() {
         const context = await sdk.context;
         const fid = context.user.fid;
         const displayName = (context.user.displayName || '');
+        const username = (context.user.username || "player");
         setUserFid(fid);
-        setUsername(context.user.username || "player");
+        setUsername(username);
         setDisplayName(displayName);
         sessionStorage.setItem("fid", fid.toString());
+        sessionStorage.setItem("username", username.toString());
+        sessionStorage.setItem("displayName", displayName.toString());
       } catch {
         setUsername("player");
         
