@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CommandButtons from "./CommandButtons";
-import { sdk } from "@farcaster/frame-sdk";
-import { useConnect, useAccount } from "wagmi";
 
 interface Message {
   text: string;
@@ -16,91 +14,35 @@ function ChatWindow() {
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [userFid, setUserFid] = useState<number | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { connect, connectors } = useConnect();
-  const { isConnected: isAccountConnected } = useAccount();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const context = await sdk.context;
-        const fid = context.user.fid;
-        setUserFid(fid);
-        setUsername(context.user.username || "player");
-        sessionStorage.setItem("fid", fid.toString());
-      } catch {
-        setUsername("player");
-      }
-    };
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    const autoConnectInMiniApp = async () => {
-      try {
-        const inMiniApp = await sdk.isInMiniApp();
-        if (inMiniApp && !isAccountConnected) {
-          const farcasterConnector = connectors.find(
-            (c) => c.id === "farcasterFrame"
-          );
-          if (farcasterConnector) {
-            connect({ connector: farcasterConnector });
-          }
-        }
-      } catch (error) {
-        console.error("Error during auto-connect:", error);
-      }
-    };
-    autoConnectInMiniApp();
-  }, [isAccountConnected, connect, connectors]);
+  const hardcodedFid = 320264;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    const fid = sessionStorage.getItem("fid");
-    if (fid) {
-      setUserFid(parseInt(fid));
-    }
-  }, []);
-
   const sendCommand = async (command: string) => {
-    const fid = sessionStorage.getItem("fid");
-    if (!fid) {
-      setMessages([
-        ...messages,
-        { text: "Please authenticate via Farcaster." },
-      ]);
-      return;
-    }
-
     setMessages([...messages, { text: command, isUser: true }]);
     setIsLoading(true);
+
     try {
       const { data } = await axios.post(
-        "https://forgeback-production.up.railway.app/api/chat/command",
-        { command, fid }
+        "http://localhost:3000/api/chat/command",
+        { command, fid: hardcodedFid }
       );
       setMessages((prev) => [
         ...prev,
         { text: data.response, buttons: data.buttons },
       ]);
-    }catch (error) {
-  console.error("Error processing command:", error);
+    } catch (error: any) {
+      console.error("Command failed:", error.response?.data || error.message);
   
-  const errorMessage =
-    error instanceof Error ? error.message : String(error);
-
-  setMessages((prev) => [
-    ...prev,
-    { text: `Error processing command: ${errorMessage}` },
-  ]);
-}
-finally {
+      setMessages((prev) => [
+        ...prev,
+        { text: "Error processing command." },
+      ]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -127,12 +69,10 @@ finally {
           >
             <pre className="whitespace-pre-wrap">{msg.text}</pre>
 
-            {i === 0 && userFid && (
-              <p className="text-xs text-gray-500 mt-1">Your Farcaster ID: {userFid}</p>
-            )}
-
-            {i === 0 && username && (
-              <p className="text-xs text-gray-500">Logged in as: {username}</p>
+            {i === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Your Farcaster ID: {hardcodedFid}
+              </p>
             )}
 
             {msg.buttons && (
@@ -157,7 +97,9 @@ finally {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
       <CommandButtons onCommand={sendCommand} />
+
       <form onSubmit={handleSubmit} className="flex mt-2">
         <input
           type="text"
