@@ -70,6 +70,7 @@ function ChatWindow() {
 
   const sendCommand = async (command: string) => {
     const fid = sessionStorage.getItem("fid");
+     console.log("sendCommand: fid =", fid, "command =", command); // Log fid and command
     if (!fid) {
       setMessages([
         ...messages,
