@@ -19,7 +19,7 @@ function ChatWindow() {
   const [userFid, setUserFid] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const { connect, connectors } = useConnect();
   const { isConnected: isAccountConnected } = useAccount();
 
@@ -28,11 +28,14 @@ function ChatWindow() {
       try {
         const context = await sdk.context;
         const fid = context.user.fid;
+        const displayName = (context.user.displayName || '');
         setUserFid(fid);
         setUsername(context.user.username || "player");
+        setDisplayName(displayName);
         sessionStorage.setItem("fid", fid.toString());
       } catch {
         setUsername("player");
+        
       }
     };
     fetchUser();
@@ -142,6 +145,10 @@ finally {
 
             {i === 0 && username && (
               <p className="text-xs text-gray-500">Logged in as: {username}</p>
+            )}
+
+            {i === 0 && displayName && (
+              <p className="text-xs text-gray-500">Logged in as: {displayName}</p>
             )}
 
             {msg.buttons && (
