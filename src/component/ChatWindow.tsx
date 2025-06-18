@@ -30,7 +30,6 @@ function ChatWindow() {
   });
 
   useEffect(() => {
-    // Load authData from sessionStorage on mount
     const storedAuthData = sessionStorage.getItem("authData");
     const storedFid = sessionStorage.getItem("fid");
     console.log("Initial load: storedAuthData =", storedAuthData, "storedFid =", storedFid);
@@ -144,7 +143,6 @@ function ChatWindow() {
     <AuthKitProvider
       config={{
         domain: "mini-testf.netlify.app",
-        siweUri: "https://forgeback-production.up.railway.app/api/auth",
         rpcUrl: `https://base-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`,
       }}
     >
@@ -187,32 +185,42 @@ function ChatWindow() {
           ))}
           <div ref={messagesEndRef} />
         </div>
-        {!isAuthenticated && (
-          <SignInButton
-            nonce={async () => {
-              try {
-                const response = await axios.get(
-                  "https://forgeback-production.up.railway.app/api/nonce",
-                  { withCredentials: true }
-                );
-                console.log("Fetched nonce:", response.data.nonce);
-                return response.data.nonce;
-              } catch (error) {
-                console.error("Failed to fetch nonce:", error);
-                throw error;
-              }
-            }}
-            onSuccess={({ nonce, signature, message }) => {
-              console.log("Farcaster sign-in successful:", { nonce, signature, message });
-              setAuthData({ nonce, signature, message });
-            }}
-            onError={(error) => {
-              console.error("Farcaster sign-in failed:", error);
-              const errorMessage = error ? error.message || "Unknown error" : "Sign-in failed";
-              setMessages([...messages, { text: `❌ Farcaster sign-in failed: ${errorMessage}` }]);
-            }}
-          />
-        )}
+       {!isAuthenticated && (
+  <div className="mb-4 p-4 bg-white rounded-lg shadow z-50 flex flex-col items-center">
+    <p className="mb-2 text-sm text-gray-700">Please sign in with Farcaster:</p>
+    <div onClick={() => console.log("SignInButton clicked")}>
+      <SignInButton
+        nonce={async () => {
+          console.log("SignInButton nonce requested");
+          try {
+            const response = await axios.get(
+              "https://forgeback-production.up.railway.app/api/nonce",
+              { withCredentials: true }
+            );
+            console.log("Fetched nonce:", response.data.nonce);
+            return response.data.nonce;
+          } catch (error) {
+            console.error("Failed to fetch nonce:", error);
+            throw error;
+          }
+        }}
+        onSuccess={({ nonce, signature, message }) => {
+          console.log("Farcaster sign-in successful:", { nonce, signature, message });
+          setAuthData({ nonce, signature, message });
+        }}
+        onError={(error) => {
+          console.error("Farcaster sign-in failed:", error);
+          const errorMessage = error ? error.message || "Unknown error" : "Sign-in failed";
+          setMessages((prev) => [
+            ...prev,
+            { text: `❌ Farcaster sign-in failed: ${errorMessage}` },
+          ]);
+        }}
+      />
+    </div>
+  </div>
+)}
+
         <CommandButtons onCommand={sendCommand} isLoading={isLoading} />
         <form onSubmit={handleSubmit} className="flex mt-2">
           <input
