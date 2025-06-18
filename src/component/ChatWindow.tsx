@@ -91,13 +91,21 @@ function ChatWindow() {
       ]);
     }catch (error) {
   console.error("Error processing command:", error);
-  
+  if (axios.isAxiosError(error)) {
+    console.log("Axios error details:", {
+      message: error.message,
+      code: error.code,
+      response: error.response ? {
+        status: error.response.status,
+        data: error.response.data,
+      } : null,
+    });
+  }
   const errorMessage =
     error instanceof Error ? error.message : String(error);
-
   setMessages((prev) => [
     ...prev,
-    { text: `Error processing command: ${errorMessage}` },
+    { text: `Error: ${errorMessage}` },
   ]);
 }
 finally {
