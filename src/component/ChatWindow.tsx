@@ -32,6 +32,8 @@ function ChatWindow() {
   useEffect(() => {
     // Load authData from sessionStorage on mount
     const storedAuthData = sessionStorage.getItem("authData");
+    const storedFid = sessionStorage.getItem("fid");
+    console.log("Initial load: storedAuthData =", storedAuthData, "storedFid =", storedFid);
     if (storedAuthData) {
       setAuthData(JSON.parse(storedAuthData));
     }
@@ -39,7 +41,7 @@ function ChatWindow() {
 
   useEffect(() => {
     if (isAuthenticated && profile?.fid && authData) {
-      console.log("Sign-in confirmed:", { fid: profile.fid, authData });
+      console.log("Sign-in confirmed:", { fid: profile.fid, authData, profile });
       setMessages((prev) => [
         ...prev,
         { text: `Logged in as ${profile.displayName} (FID: ${profile.fid})` },
@@ -49,6 +51,8 @@ function ChatWindow() {
       sessionStorage.setItem("displayName", profile.displayName || "User");
       sessionStorage.setItem("authData", JSON.stringify(authData));
       sendCommand("/start");
+    } else {
+      console.log("Sign-in incomplete:", { isAuthenticated, fid: profile?.fid, authData });
     }
   }, [isAuthenticated, profile, authData]);
 
@@ -63,6 +67,8 @@ function ChatWindow() {
     const storedAuthData = sessionStorage.getItem("authData");
     const userAuthData = storedAuthData ? JSON.parse(storedAuthData) : authData;
 
+    console.log("sendCommand: Preparing request", { fid, username, displayName, command, userAuthData });
+
     if (
       lastCommand.current.fid === fid &&
       lastCommand.current.command === command &&
@@ -73,7 +79,6 @@ function ChatWindow() {
     }
     lastCommand.current = { fid, command, time: Date.now() };
 
-    console.log("sendCommand: fid =", fid, "username =", username, "displayName =", displayName, "command =", command, "userAuthData =", userAuthData);
     if (!fid || !userAuthData?.nonce || !userAuthData?.signature || !userAuthData?.message) {
       console.log("sendCommand: Missing required data", { fid, userAuthData });
       setMessages([...messages, { text: "Please sign in via Farcaster." }]);
@@ -94,12 +99,13 @@ function ChatWindow() {
           message: userAuthData.message,
         },
       };
-      console.log("sendCommand: Sending payload =", payload);
+      console.log("sendCommand: Sending payload =", JSON.stringify(payload, null, 2));
       const { data } = await axios.post(
         "https://forgeback-production.up.railway.app/api/chat/command",
         payload,
         { withCredentials: true }
       );
+      console.log("sendCommand: Response received =", data);
       setMessages((prev) => [
         ...prev,
         { text: data.response, buttons: data.buttons },
@@ -184,19 +190,26 @@ function ChatWindow() {
         {!isAuthenticated && (
           <SignInButton
             nonce={async () => {
-              const response = await axios.get(
-                "https://forgeback-production.up.railway.app/api/nonce"
-              );
-              console.log("Fetched nonce:", response.data.nonce);
-              return response.data.nonce;
+              try {
+                const response = await axios.get(
+                  "https://forgeback-production.up.railway.app/api/nonce",
+                  { withCredentials: true }
+                );
+                console.log("Fetched nonce:", response.data.nonce);
+                return response.data.nonce;
+              } catch (error) {
+                console.error("Failed to fetch nonce:", error);
+                throw error;
+              }
             }}
             onSuccess={({ nonce, signature, message }) => {
-              console.log("Farcaster sign-in successful", { nonce, signature, message });
+              console.log("Farcaster sign-in successful:", { nonce, signature, message });
               setAuthData({ nonce, signature, message });
             }}
             onError={(error) => {
-              console.error("Farcaster sign-in failed", error);
-              setMessages([...messages, { text: "❌ Farcaster sign-in failed. Please try again." }]);
+              console.error("Farcaster sign-in failed:", error);
+              const errorMessage = error ? error.message || "Unknown error" : "Sign-in failed";
+              setMessages([...messages, { text: `❌ Farcaster sign-in failed: ${errorMessage}` }]);
             }}
           />
         )}

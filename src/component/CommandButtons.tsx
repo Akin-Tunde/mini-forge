@@ -1,7 +1,7 @@
 // src/components/CommandButtons.tsx
 interface CommandButtonsProps {
-  onCommand: (command: string) => Promise<void>;
-  isLoading: boolean;
+  onCommand: (command: string) => Promise<void>; // Async to match sendCommand
+  isLoading: boolean; // Add isLoading
 }
 
 function CommandButtons({ onCommand, isLoading }: CommandButtonsProps) {
@@ -24,7 +24,7 @@ function CommandButtons({ onCommand, isLoading }: CommandButtonsProps) {
           key={command}
           className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
           onClick={() => onCommand(command)}
-          disabled={isLoading}
+          disabled={isLoading} // Disable buttons when loading
         >
           {label}
         </button>
