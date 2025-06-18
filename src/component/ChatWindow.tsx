@@ -75,50 +75,52 @@ function ChatWindow() {
   }, []);
 
   const sendCommand = async (command: string) => {
-    const fid = sessionStorage.getItem("fid");
-     console.log("sendCommand: fid =", fid, "command =", command); // Log fid and command
-    if (!fid) {
-      setMessages([
-        ...messages,
-        { text: "Please authenticate via Farcaster." },
-      ]);
-      return;
-    }
-
-    setMessages([...messages, { text: command, isUser: true }]);
-    setIsLoading(true);
-    try {
-      const { data } = await axios.post(
-        "https://forgeback-production.up.railway.app/api/chat/command",
-        { command, fid }
-      );
-      setMessages((prev) => [
-        ...prev,
-        { text: data.response, buttons: data.buttons },
-      ]);
-    }catch (error) {
-  console.error("Error processing command:", error);
-  if (axios.isAxiosError(error)) {
-    console.log("Axios error details:", {
-      message: error.message,
-      code: error.code,
-      response: error.response ? {
-        status: error.response.status,
-        data: error.response.data,
-      } : null,
-    });
+  const fid = sessionStorage.getItem("fid");
+  const username = sessionStorage.getItem("username");
+  const displayName = sessionStorage.getItem("displayName");
+  console.log("sendCommand: fid =", fid, "username =", username, "displayName =", displayName, "command =", command);
+  
+  if (!fid) {
+    setMessages([
+      ...messages,
+      { text: "Please authenticate via Farcaster." },
+    ]);
+    return;
   }
-  const errorMessage =
-    error instanceof Error ? error.message : String(error);
-  setMessages((prev) => [
-    ...prev,
-    { text: `Error: ${errorMessage}` },
-  ]);
-}
-finally {
-      setIsLoading(false);
+
+  setMessages([...messages, { text: command, isUser: true }]);
+  setIsLoading(true);
+  try {
+    const { data } = await axios.post(
+      "https://forgeback-production.up.railway.app/api/chat/command",
+      { command, fid, username, displayName } // Include username and displayName
+    );
+    setMessages((prev) => [
+      ...prev,
+      { text: data.response, buttons: data.buttons },
+    ]);
+  } catch (error) {
+    console.error("Error processing command:", error);
+    if (axios.isAxiosError(error)) {
+      console.log("Axios error details:", {
+        message: error.message,
+        code: error.code,
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data,
+        } : null,
+      });
     }
-  };
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    setMessages((prev) => [
+      ...prev,
+      { text: `Error: ${errorMessage}` },
+    ]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
