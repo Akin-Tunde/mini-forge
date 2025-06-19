@@ -1,4 +1,4 @@
-// src/components/ChatWindow.tsx (updated)
+// src/components/ChatWindow.tsx
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CommandButtons from "./CommandButtons";
@@ -81,11 +81,12 @@ function ChatWindow() {
     }
   }, []);
 
-  const sendCommand = async (command: string, args?: string, isCallback: boolean = false) => {
+  const sendCommand = async (command: string, args?: string) => {
     const fid = sessionStorage.getItem("fid");
     const username = sessionStorage.getItem("username");
     const displayName = sessionStorage.getItem("displayName");
 
+    // Debounce: Ignore duplicate commands within 1 second
     if (
       lastCommand.current.fid === fid &&
       lastCommand.current.command === command &&
@@ -96,7 +97,7 @@ function ChatWindow() {
     }
     lastCommand.current = { fid, command, time: Date.now() };
 
-    console.log("sendCommand: fid =", fid, "username =", username, "displayName =", displayName, "command =", command, "args =", args, "isCallback =", isCallback);
+    console.log("sendCommand: fid =", fid, "username =", username, "displayName =", displayName, "command =", command, "args =", args);
 
     if (!fid) {
       setMessages([
@@ -117,10 +118,10 @@ function ChatWindow() {
       };
 
       let endpoint = "/api/chat/command";
-      if (args || isCallback) {
+      if (args) {
         endpoint = "/api/callback";
         payload.callback = command;
-        if (args) payload.args = args;
+        payload.args = args;
       } else {
         payload.command = command;
       }
@@ -160,19 +161,20 @@ function ChatWindow() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
+      // Check if last message prompts for private key
       if (
         messages[messages.length - 1]?.text.includes("Please send your private key")
       ) {
-        sendCommand("import_wallet", input.trim(), true);
+        sendCommand("import_wallet", input.trim()); // Send as args
       } else {
-        sendCommand(input.trim());
+        sendCommand(input.trim()); // Send as command
       }
       setInput("");
     }
   };
 
   const handleButtonClick = (callback: string) => {
-    sendCommand(callback, undefined, true);
+    sendCommand(callback);
   };
 
   return (
