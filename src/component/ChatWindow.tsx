@@ -136,7 +136,8 @@ function ChatWindow() {
 
       const { data } = await axios.post(
         `https://forgeback-production.up.railway.app${endpoint}`,
-        payload
+        payload,
+        { withCredentials: true } // Ensure session cookie is sent
       );
       setMessages((prev) => [
         ...prev,
