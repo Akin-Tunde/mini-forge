@@ -134,11 +134,16 @@ function ChatWindow() {
         payload.command = command;
       }
 
-      const { data } = await axios.post(
-        `https://forgeback-production.up.railway.app${endpoint}`,
+      const apiUrl = process.env.NODE_ENV === "production"
+        ? "https://forgeback-production.up.railway.app"
+        : "http://localhost:3000"; // Adjust port if needed
+      console.log("Sending request to:", `${apiUrl}${endpoint}`, "payload:", payload);
+      const { data, headers } = await axios.post(
+        `${apiUrl}${endpoint}`,
         payload,
         { withCredentials: true }
       );
+      console.log("Response headers:", headers, "Set-Cookie:", headers["set-cookie"]);
       setMessages((prev) => [
         ...prev,
         { text: data.response, buttons: data.buttons },
