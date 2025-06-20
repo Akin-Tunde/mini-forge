@@ -1,4 +1,3 @@
-// src/components/ChatWindow.tsx
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CommandButtons from "./CommandButtons";
@@ -98,7 +97,15 @@ function ChatWindow() {
     }
     lastCommand.current = { fid, command, time: Date.now() };
 
-    console.log("sendCommand: fid =", fid, "username =", username, "displayName =", displayName, "command =", command, "args =", args, "isCallback =", isCallback, "currentAction =", currentAction.current);
+    console.log(
+      "sendCommand: fid =", fid,
+      "username =", username,
+      "displayName =", displayName,
+      "command =", command,
+      "args =", args,
+      "isCallback =", isCallback,
+      "currentAction =", currentAction.current
+    );
 
     if (!fid) {
       setMessages([
@@ -119,15 +126,16 @@ function ChatWindow() {
       };
 
       let endpoint = "/api/command";
-      // Check if expecting input for specific actions
       const lastMessage = messages[messages.length - 1]?.text || "";
       if (
         isCallback ||
         lastMessage.includes("Please send the ERC-20 token address") ||
         lastMessage.includes("Please enter the amount of ETH") ||
-        lastMessage.includes("Please send your private key")
+        lastMessage.includes("Please send your private key") ||
+        lastMessage.includes("Please provide the address to withdraw to.") ||
+        lastMessage.includes("Please enter the amount of ETH to withdraw")
       ) {
-        endpoint = "/api/callback";
+        endpoint = isCallback ? "/api/callback" : "/api/input";
         payload.callback = isCallback ? command : null;
         payload.args = args || (isCallback ? undefined : command);
       } else {
@@ -136,7 +144,7 @@ function ChatWindow() {
 
       const apiUrl = process.env.NODE_ENV === "production"
         ? "https://forgeback-production.up.railway.app"
-        : "http://localhost:3000"; // Adjust port if needed
+        : "http://localhost:3000";
       console.log("Sending request to:", `${apiUrl}${endpoint}`, "payload:", payload);
       const response = await axios.post(`${apiUrl}${endpoint}`, payload, {
         withCredentials: true,
@@ -148,15 +156,28 @@ function ChatWindow() {
       console.log("Response headers:", response.headers, "Set-Cookie:", response.headers["set-cookie"]);
       setMessages((prev) => [
         ...prev,
-        { text: response.data.response, buttons: response.data.buttons },
+        {
+          text: response.data.response,
+          buttons: response.data.buttons,
+        },
       ]);
-      // Update currentAction based on response or context
+      // Update currentAction based on response
       if (response.data.response.includes("Please send the ERC-20 token address")) {
         currentAction.current = "buy_custom_token";
       } else if (response.data.response.includes("Please enter the amount of ETH")) {
         currentAction.current = "buy_amount";
       } else if (response.data.response.includes("Please send your private key")) {
         currentAction.current = "import_wallet";
+      } else if (response.data.response.includes("Please provide the address to withdraw to.")) {
+        currentAction.current = "withdraw_address";
+      } else if (response.data.response.includes("Please enter the amount of ETH to withdraw")) {
+        currentAction.current = "withdraw_amount";
+      } else if (response.data.response.includes("Invalid session state")) {
+        currentAction.current = null;
+        setMessages((prev) => [
+          ...prev,
+          { text: "Please restart the buy process with /buy or click 'Buy Token'." },
+        ]);
       } else {
         currentAction.current = null;
       }
@@ -178,8 +199,9 @@ function ChatWindow() {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setMessages((prev) => [
         ...prev,
-        { text: `Error: ${errorMessage}` },
+        { text: `Error: ${errorMessage}. Please try again or use /help.` },
       ]);
+      currentAction.current = null;
     } finally {
       setIsLoading(false);
     }
