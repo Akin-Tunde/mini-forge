@@ -137,7 +137,7 @@ function ChatWindow() {
       const { data } = await axios.post(
         `https://forgeback-production.up.railway.app${endpoint}`,
         payload,
-        { withCredentials: true } // Ensure session cookie is sent
+        { withCredentials: true }
       );
       setMessages((prev) => [
         ...prev,
@@ -163,6 +163,7 @@ function ChatWindow() {
             ? {
                 status: error.response.status,
                 data: error.response.data,
+                headers: error.response.headers,
               }
             : null,
         });
