@@ -156,7 +156,10 @@ function ChatWindow() {
       console.log("Response headers:", response.headers, "Set-Cookie:", response.headers["set-cookie"]);
       setMessages((prev) => [
         ...prev,
-        { text: response.data.response, buttons: response.data.buttons },
+        {
+          text: response.data.response,
+          buttons: response.data.buttons,
+        },
       ]);
       // Update currentAction based on response
       if (response.data.response.includes("Please send the ERC-20 token address")) {
@@ -169,6 +172,12 @@ function ChatWindow() {
         currentAction.current = "withdraw_address";
       } else if (response.data.response.includes("Please enter the amount of ETH to withdraw")) {
         currentAction.current = "withdraw_amount";
+      } else if (response.data.response.includes("Invalid session state")) {
+        currentAction.current = null;
+        setMessages((prev) => [
+          ...prev,
+          { text: "Please restart the buy process with /buy or click 'Buy Token'." },
+        ]);
       } else {
         currentAction.current = null;
       }
@@ -190,8 +199,9 @@ function ChatWindow() {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setMessages((prev) => [
         ...prev,
-        { text: `Error: ${errorMessage}` },
+        { text: `Error: ${errorMessage}. Please try again or use /help.` },
       ]);
+      currentAction.current = null;
     } finally {
       setIsLoading(false);
     }
