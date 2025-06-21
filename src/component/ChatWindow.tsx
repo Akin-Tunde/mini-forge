@@ -1,3 +1,4 @@
+// src/components/ChatWindow.tsx
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import CommandButtons from "./CommandButtons";
@@ -86,7 +87,6 @@ function ChatWindow() {
     const username = sessionStorage.getItem("username");
     const displayName = sessionStorage.getItem("displayName");
 
-    // Debounce: Ignore duplicate commands within 1 second
     if (
       lastCommand.current.fid === fid &&
       lastCommand.current.command === command &&
@@ -130,12 +130,11 @@ function ChatWindow() {
       if (
         isCallback ||
         lastMessage.includes("Please send the ERC-20 token address") ||
-        lastMessage.includes("Please enter the amount of ETH") ||
-        lastMessage.includes("Please send your private key") ||
-        lastMessage.includes("Please provide the address to withdraw to.") ||
-        lastMessage.includes("Please enter the amount of ETH to withdraw")
+        lastMessage.includes("Please enter the amount of") ||
+        lastMessage.includes("Please confirm or ") ||
+        lastMessage.includes("Are you sure you want to proceed?")
       ) {
-        endpoint = isCallback ? "/api/callback" : "/api/input";
+        endpoint = "/api/callback";
         payload.callback = isCallback ? command : null;
         payload.args = args || (isCallback ? undefined : command);
       } else {
@@ -153,31 +152,25 @@ function ChatWindow() {
           "Content-Type": "application/json",
         },
       });
-      console.log("Response headers:", response.headers, "Set-Cookie:", response.headers["set-cookie"]);
+      console.log(
+        "Response: data =", response.data,
+        "headers =", response.headers,
+        "Set-Cookie =", response.headers["set-cookie"],
+        "status =", response.status
+      );
+      console.log("Document cookies:", document.cookie);
       setMessages((prev) => [
         ...prev,
-        {
-          text: response.data.response,
-          buttons: response.data.buttons,
-        },
+        { text: response.data.response, buttons: response.data.buttons },
       ]);
-      // Update currentAction based on response
       if (response.data.response.includes("Please send the ERC-20 token address")) {
         currentAction.current = "buy_custom_token";
-      } else if (response.data.response.includes("Please enter the amount of ETH")) {
+      } else if (response.data.response.includes("Please enter the amount of")) {
         currentAction.current = "buy_amount";
-      } else if (response.data.response.includes("Please send your private key")) {
-        currentAction.current = "import_wallet";
-      } else if (response.data.response.includes("Please provide the address to withdraw to.")) {
-        currentAction.current = "withdraw_address";
-      } else if (response.data.response.includes("Please enter the amount of ETH to withdraw")) {
-        currentAction.current = "withdraw_amount";
-      } else if (response.data.response.includes("Invalid session state")) {
-        currentAction.current = null;
-        setMessages((prev) => [
-          ...prev,
-          { text: "Please restart the buy process with /buy or click 'Buy Token'." },
-        ]);
+      } else if (response.data.response.includes("Please confirm or ")) {
+        currentAction.current = "buy_confirm";
+      } else if (response.data.response.includes("Are you sure you want to proceed?")) {
+        currentAction.current = "export_confirm";
       } else {
         currentAction.current = null;
       }
@@ -199,9 +192,8 @@ function ChatWindow() {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setMessages((prev) => [
         ...prev,
-        { text: `Error: ${errorMessage}. Please try again or use /help.` },
+        { text: `Error: ${errorMessage}` },
       ]);
-      currentAction.current = null;
     } finally {
       setIsLoading(false);
     }
@@ -216,6 +208,7 @@ function ChatWindow() {
   };
 
   const handleButtonClick = (callback: string) => {
+    console.log("Button clicked with callback:", callback);
     sendCommand(callback, undefined, true);
   };
 
